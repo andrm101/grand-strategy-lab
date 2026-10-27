@@ -23,7 +23,9 @@ class CodeInfo:
 CODES: dict[str, CodeInfo] = {
     # Input / IO
     "GSL-IO-001": CodeInfo(
-        "error", "Input file not found", "Check the path; inputs must be regular files."
+        "error",
+        "Input file missing or unreadable",
+        "Check the path and permissions; inputs must be readable regular files.",
     ),
     "GSL-IO-002": CodeInfo(
         "error",
@@ -37,6 +39,11 @@ CODES: dict[str, CodeInfo] = {
         "error",
         "JSON nesting exceeds depth limit",
         "Flatten the document or raise InputLimits.max_depth deliberately.",
+    ),
+    "GSL-IO-005": CodeInfo(
+        "error",
+        "Duplicate JSON object key",
+        "Remove the repeated key; duplicates would silently overwrite earlier values.",
     ),
     # Schema version
     "GSL-SCH-001": CodeInfo(
@@ -69,6 +76,11 @@ CODES: dict[str, CodeInfo] = {
     ),
     "GSL-CON-001": CodeInfo(
         "error", "Actor on both sides of a conflict", "Place each actor on exactly one side."
+    ),
+    "GSL-CON-002": CodeInfo(
+        "error",
+        "Actor listed twice on one side of a conflict",
+        "List each participant once per side.",
     ),
     "GSL-DATE-001": CodeInfo("error", "Start date after end date", "Swap or correct the dates."),
     "GSL-DATE-002": CodeInfo(

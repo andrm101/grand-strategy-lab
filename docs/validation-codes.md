@@ -10,10 +10,11 @@ CLI exit codes: `0` valid · `1` validation errors · `2` not implemented · `3`
 
 | Code | Severity | Meaning | Remediation |
 |---|---|---|---|
-| `GSL-IO-001` | error | Input file not found | Check the path; inputs must be regular files. |
+| `GSL-IO-001` | error | Input file missing or unreadable | Check the path and permissions; inputs must be readable regular files. |
 | `GSL-IO-002` | error | Input file exceeds size limit | Use a smaller input or raise InputLimits.max_bytes deliberately. |
 | `GSL-IO-003` | error | Input is not valid UTF-8 JSON | Fix the JSON syntax or encoding. |
 | `GSL-IO-004` | error | JSON nesting exceeds depth limit | Flatten the document or raise InputLimits.max_depth deliberately. |
+| `GSL-IO-005` | error | Duplicate JSON object key | Remove the repeated key; duplicates would silently overwrite earlier values. |
 | `GSL-SCH-001` | error | Unsupported or missing schema version | Re-export the state with this release's schema version (see ADR-0005). |
 | `GSL-STR-001` | error | Required field missing | Add the field. |
 | `GSL-STR-002` | error | Unknown field | Remove the field or move game-specific data under an extensions namespace. |
@@ -22,6 +23,7 @@ CLI exit codes: `0` valid · `1` validation errors · `2` not implemented · `3`
 | `GSL-NUM-002` | error | Amount below declared lower bound | Correct the amount or its lower_bound. |
 | `GSL-REL-001` | error | Self-relation | A relation must connect two different actors. |
 | `GSL-CON-001` | error | Actor on both sides of a conflict | Place each actor on exactly one side. |
+| `GSL-CON-002` | error | Actor listed twice on one side of a conflict | List each participant once per side. |
 | `GSL-DATE-001` | error | Start date after end date | Swap or correct the dates. |
 | `GSL-DATE-002` | error | Date after the state's clock | A snapshot cannot contain future events; correct the date or the clock. |
 | `GSL-CLK-001` | error | Metadata time differs from clock | Set metadata.observed_at_game_time equal to clock. |

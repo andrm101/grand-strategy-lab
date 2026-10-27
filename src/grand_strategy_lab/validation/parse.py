@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -42,27 +43,61 @@ class ParseResult:
     report: ValidationReport
 
 
+class _JsonObject(dict[str, object]):
+    """JSON object that remembers keys which appeared more than once."""
+
+    duplicates: list[str]
+
+    def __init__(self, pairs: list[tuple[str, object]]) -> None:
+        super().__init__()
+        self.duplicates = []
+        for key, value in pairs:
+            if key in self:
+                self.duplicates.append(key)
+            self[key] = value
+
+
 def _fail(code: str, path: str, message: str) -> ParseResult:
-    issue = ValidationIssue.from_code(code, path, message)
-    return ParseResult(state=None, report=ValidationReport.from_issues([issue]))
+    return _fail_many([ValidationIssue.from_code(code, path, message)])
 
 
-def _children(node: object) -> list[object]:
+def _fail_many(issues: list[ValidationIssue]) -> ParseResult:
+    return ParseResult(state=None, report=ValidationReport.from_issues(issues))
+
+
+def _children(node: object) -> list[tuple[str | int, object]]:
     if isinstance(node, dict):
-        return list(cast(dict[str, object], node).values())
+        return list(cast(dict[str, object], node).items())
     if isinstance(node, list):
-        return list(cast(list[object], node))
+        return list(enumerate(cast(list[object], node)))
     return []
 
 
-def _max_depth(document: object) -> int:
-    deepest = 0
-    stack: list[tuple[object, int]] = [(document, 1)]
+def _scan(document: object, max_depth: int) -> list[ValidationIssue]:
+    """Walk the raw document once: depth limit, then duplicate keys and non-finite numbers."""
+    issues: list[ValidationIssue] = []
+    stack: list[tuple[object, tuple[str | int, ...]]] = [(document, ())]
     while stack:
-        node, depth = stack.pop()
-        deepest = max(deepest, depth)
-        stack.extend((child, depth + 1) for child in _children(node))
-    return deepest
+        node, path = stack.pop()
+        if len(path) + 1 > max_depth:
+            return [
+                ValidationIssue.from_code("GSL-IO-004", "", f"nesting depth exceeds {max_depth}")
+            ]
+        if isinstance(node, _JsonObject):
+            issues.extend(
+                ValidationIssue.from_code(
+                    "GSL-IO-005", json_pointer((*path, key)), f"duplicate JSON key {key!r}"
+                )
+                for key in sorted(set(node.duplicates))
+            )
+        elif isinstance(node, float) and not math.isfinite(node):
+            issues.append(
+                ValidationIssue.from_code(
+                    "GSL-NUM-001", json_pointer(path), f"non-finite number {node}"
+                )
+            )
+        stack.extend((child, (*path, key)) for key, child in _children(node))
+    return issues
 
 
 def _declared_schema_version(document: object) -> object:
@@ -82,13 +117,21 @@ def _structural_issues(error: ValidationError) -> Iterator[ValidationIssue]:
 
 
 def read_bounded(path: Path, limits: InputLimits) -> bytes | ParseResult:
-    """Read ``path`` if it is a regular file within ``limits``; otherwise return a failure."""
+    """Read at most ``limits.max_bytes`` from a regular file; otherwise return a failure.
+
+    The read itself is capped, so a file that grows after any size check still
+    cannot exceed the limit.
+    """
     if not path.is_file():
         return _fail("GSL-IO-001", "", f"input file not found: {path.name}")
-    size = path.stat().st_size
-    if size > limits.max_bytes:
-        return _fail("GSL-IO-002", "", f"input is {size} bytes; limit is {limits.max_bytes}")
-    return path.read_bytes()
+    try:
+        with path.open("rb") as handle:
+            data = handle.read(limits.max_bytes + 1)
+    except OSError as exc:
+        return _fail("GSL-IO-001", "", f"cannot read {path.name}: {exc.strerror}")
+    if len(data) > limits.max_bytes:
+        return _fail("GSL-IO-002", "", f"input exceeds the {limits.max_bytes}-byte limit")
+    return data
 
 
 def parse_state(
@@ -99,29 +142,31 @@ def parse_state(
 ) -> ParseResult:
     """Parse canonical JSON bytes into a ``GameState`` and validate it fully.
 
-    Order: size → JSON syntax → nesting depth → schema version → structure →
-    cross-object checks. The state is returned only if no error-level issue exists,
-    so a failed parse can never yield a superficially valid state.
+    Order: size → JSON syntax → raw-document scan (depth, duplicate keys,
+    non-finite numbers) → schema version → structure → cross-object checks.
+    The state is returned only if no error-level issue exists, so a failed
+    parse can never yield a superficially valid state.
     """
     limits = limits or InputLimits()
     if len(raw) > limits.max_bytes:
-        return _fail("GSL-IO-002", "", f"input is {len(raw)} bytes; limit is {limits.max_bytes}")
+        return _fail("GSL-IO-002", "", f"input exceeds the {limits.max_bytes}-byte limit")
     try:
-        document: object = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        return _fail("GSL-IO-003", "", str(exc))
+        document: object = json.loads(raw.decode("utf-8"), object_pairs_hook=_JsonObject)
     except RecursionError:
         return _fail("GSL-IO-004", "", "JSON nesting exceeds interpreter recursion limit")
-    depth = _max_depth(document)
-    if depth > limits.max_depth:
-        return _fail("GSL-IO-004", "", f"nesting depth {depth} exceeds {limits.max_depth}")
+    except ValueError as exc:  # invalid UTF-8, JSON syntax, or integer-digit limit
+        return _fail("GSL-IO-003", "", str(exc))
+
+    scan_issues = _scan(document, limits.max_depth)
+    if scan_issues:
+        return _fail_many(scan_issues)
 
     version = _declared_schema_version(document)
-    if not isinstance(version, str) or not is_supported_schema_version(version):
+    if isinstance(version, str) and not is_supported_schema_version(version):
         return _fail(
             "GSL-SCH-001",
             "/metadata/schema_version",
-            f"schema version {version!r} is missing or not supported",
+            f"schema version {version!r} is not supported",
         )
 
     try:
