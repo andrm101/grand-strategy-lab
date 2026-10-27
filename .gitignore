@@ -1,0 +1,28 @@
+# Python / tooling
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+build/
+dist/
+*.egg-info/
+
+# Secrets and personal config
+.env
+CLAUDE.local.md
+
+# Local data zones (charter: never commit raw, interim, processed, or artifacts)
+data/raw/
+data/interim/
+data/processed/
+artifacts/
+
+# Game saves and protected content
+*.eu4
+*.ck3
+*.fm
+
+# Notebooks
+.ipynb_checkpoints/
