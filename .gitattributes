@@ -1,0 +1,2 @@
+# Byte-stable checkouts on every OS so fixture/source SHA-256 hashes are reproducible.
+* text=auto eol=lf
