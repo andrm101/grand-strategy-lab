@@ -43,3 +43,14 @@ Format: PROJECT_CHARTER.md § Governance → Decision records.
 - Alternatives: 3.12 only on Ubuntu (cheaper; misses Windows path issues); include 3.14 (scientific wheels may lag).
 - Consequences: Four CI jobs per push; Windows path handling is tested.
 - Revisit when: Milestone 3 adds compiled ML dependencies, or 3.14 wheels are universally available.
+
+## ADR-0004: Pydantic v2 for domain contracts
+
+- Status: accepted
+- Date: 2026-10-27
+- Context: Milestone 1 needs typed, immutable domain models with runtime validation, deterministic JSON serialization, and an exportable JSON Schema. The charter lists Pydantic for runtime contracts and forbids domain dependencies on dataframe libraries, parser vendors, and LLM SDKs (Pydantic is none of these).
+- Decision: Domain models are Pydantic v2 `BaseModel`s with `frozen=True`, `extra="forbid"`, `strict=True`, and `allow_inf_nan=False`. Per-object invariants raise `PydanticCustomError` whose type is the stable `GSL-*` issue code. `pydantic` is the only third-party import permitted in `domain/` (enforced by `tests/unit/test_architecture.py`).
+  - Purpose: contracts, validation, serialization, JSON Schema. Licence: MIT. Maintenance: active (Pydantic Services; pydantic-core in Rust). Version: `>=2.9`.
+- Alternatives: stdlib dataclasses in `domain/` with Pydantic DTOs at IO boundaries (more decoupled, ~2× model code plus a mapping layer); attrs + cattrs (no built-in JSON Schema).
+- Consequences: One model set serves contract, validation, and schema export. Strict mode means JSON `"1"` is never coerced to an integer and `"true"` never to a boolean.
+- Revisit when: Pydantic v3 changes core semantics, or validation cost dominates ingestion of large saves (Milestone 2 benchmark).
