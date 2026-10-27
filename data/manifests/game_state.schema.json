@@ -1,0 +1,438 @@
+{
+  "$defs": {
+    "Actor": {
+      "additionalProperties": false,
+      "description": "A decision-making entity (country, character, club, ...).",
+      "properties": {
+        "extensions": {
+          "patternProperties": {
+            "^[a-z0-9_]+$": {
+              "$ref": "#/$defs/JsonValue"
+            }
+          },
+          "title": "Extensions",
+          "type": "object"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind"
+      ],
+      "title": "Actor",
+      "type": "object"
+    },
+    "Conflict": {
+      "additionalProperties": false,
+      "description": "An armed or political conflict between two non-overlapping sides.",
+      "properties": {
+        "attackers": {
+          "items": {
+            "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Attackers",
+          "type": "array"
+        },
+        "defenders": {
+          "items": {
+            "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Defenders",
+          "type": "array"
+        },
+        "ended": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ended"
+        },
+        "extensions": {
+          "patternProperties": {
+            "^[a-z0-9_]+$": {
+              "$ref": "#/$defs/JsonValue"
+            }
+          },
+          "title": "Extensions",
+          "type": "object"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "started": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Started",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "attackers",
+        "defenders",
+        "started"
+      ],
+      "title": "Conflict",
+      "type": "object"
+    },
+    "GameMetadata": {
+      "additionalProperties": false,
+      "description": "Provenance and version metadata required on every state.",
+      "properties": {
+        "adapter_name": {
+          "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+          "title": "Adapter Name",
+          "type": "string"
+        },
+        "adapter_version": {
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+          "title": "Adapter Version",
+          "type": "string"
+        },
+        "dlc": {
+          "default": [],
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Dlc",
+          "type": "array"
+        },
+        "game_id": {
+          "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+          "title": "Game Id",
+          "type": "string"
+        },
+        "game_version": {
+          "minLength": 1,
+          "title": "Game Version",
+          "type": "string"
+        },
+        "mods": {
+          "default": [],
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Mods",
+          "type": "array"
+        },
+        "observed_at_game_time": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Observed At Game Time",
+          "type": "string"
+        },
+        "parsed_at_utc": {
+          "format": "date-time",
+          "title": "Parsed At Utc",
+          "type": "string"
+        },
+        "schema_version": {
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "fixture",
+            "save",
+            "export"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "game_id",
+        "game_version",
+        "schema_version",
+        "source_kind",
+        "source_sha256",
+        "observed_at_game_time",
+        "parsed_at_utc",
+        "adapter_name",
+        "adapter_version"
+      ],
+      "title": "GameMetadata",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Relation": {
+      "additionalProperties": false,
+      "description": "A typed link between two actors; ``kind`` comes from the adapter vocabulary.",
+      "properties": {
+        "directed": {
+          "title": "Directed",
+          "type": "boolean"
+        },
+        "extensions": {
+          "patternProperties": {
+            "^[a-z0-9_]+$": {
+              "$ref": "#/$defs/JsonValue"
+            }
+          },
+          "title": "Extensions",
+          "type": "object"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "since": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Since"
+        },
+        "source": {
+          "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+          "title": "Target",
+          "type": "string"
+        },
+        "until": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Until"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "target",
+        "directed"
+      ],
+      "title": "Relation",
+      "type": "object"
+    },
+    "ResourcePosition": {
+      "additionalProperties": false,
+      "description": "An actor's holding of one resource, with an explicit unit and optional floor.",
+      "properties": {
+        "actor_id": {
+          "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "lower_bound": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lower Bound"
+        },
+        "resource": {
+          "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+          "title": "Resource",
+          "type": "string"
+        },
+        "unit": {
+          "minLength": 1,
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor_id",
+        "resource",
+        "amount",
+        "unit"
+      ],
+      "title": "ResourcePosition",
+      "type": "object"
+    },
+    "Territory": {
+      "additionalProperties": false,
+      "description": "A spatial unit with optional owner and controller.",
+      "properties": {
+        "controller": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Controller"
+        },
+        "extensions": {
+          "patternProperties": {
+            "^[a-z0-9_]+$": {
+              "$ref": "#/$defs/JsonValue"
+            }
+          },
+          "title": "Extensions",
+          "type": "object"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Owner"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Territory",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Snapshot of a game at one in-game instant.",
+  "properties": {
+    "actors": {
+      "patternProperties": {
+        "^[A-Za-z0-9_.:-]{1,64}$": {
+          "$ref": "#/$defs/Actor"
+        }
+      },
+      "title": "Actors",
+      "type": "object"
+    },
+    "clock": {
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "title": "Clock",
+      "type": "string"
+    },
+    "conflicts": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Conflict"
+      },
+      "title": "Conflicts",
+      "type": "array"
+    },
+    "extensions": {
+      "patternProperties": {
+        "^[a-z0-9_]+$": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      },
+      "title": "Extensions",
+      "type": "object"
+    },
+    "metadata": {
+      "$ref": "#/$defs/GameMetadata"
+    },
+    "relations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Relation"
+      },
+      "title": "Relations",
+      "type": "array"
+    },
+    "resources": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ResourcePosition"
+      },
+      "title": "Resources",
+      "type": "array"
+    },
+    "territories": {
+      "patternProperties": {
+        "^[A-Za-z0-9_.:-]{1,64}$": {
+          "$ref": "#/$defs/Territory"
+        }
+      },
+      "title": "Territories",
+      "type": "object"
+    }
+  },
+  "required": [
+    "metadata",
+    "clock",
+    "actors"
+  ],
+  "title": "GameState",
+  "type": "object"
+}
