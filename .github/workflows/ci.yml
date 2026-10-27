@@ -17,7 +17,7 @@ jobs:
       UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.2  # exact tag: setup-uv publishes no floating major tag
         with:
           enable-cache: true
       - run: uv sync --all-extras --dev --locked
