@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "code": "GSL-REF-001",
+      "path": "/relations/1/source"
+    }
+  ]
+}

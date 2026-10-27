@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "code": "GSL-CLK-001",
+      "path": "/metadata/observed_at_game_time"
+    }
+  ]
+}

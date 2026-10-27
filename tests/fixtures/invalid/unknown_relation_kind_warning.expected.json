@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "issues": [
+    {
+      "code": "GSL-VOC-001",
+      "path": "/relations/0/kind"
+    }
+  ]
+}

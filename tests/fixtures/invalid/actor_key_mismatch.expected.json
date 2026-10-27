@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "code": "GSL-KEY-001",
+      "path": "/actors/AAA"
+    }
+  ]
+}

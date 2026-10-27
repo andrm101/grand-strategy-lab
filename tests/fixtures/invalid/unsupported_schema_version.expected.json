@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "code": "GSL-SCH-001",
+      "path": "/metadata/schema_version"
+    }
+  ]
+}
