@@ -4,6 +4,9 @@ import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from grand_strategy_lab.adapters import FixtureAdapter, GameAdapter
 from grand_strategy_lab.domain import from_json
 from grand_strategy_lab.validation import InputLimits
@@ -52,3 +55,9 @@ def test_size_limit_enforced_before_read() -> None:
     result = FixtureAdapter().load(VALID_FIXTURE, limits=InputLimits(max_bytes=100))
     assert result.state is None
     assert [i.code for i in result.report.issues] == ["GSL-IO-002"]
+
+
+def test_naive_injected_clock_fails_loudly() -> None:
+    adapter = FixtureAdapter(now=lambda: datetime(2026, 10, 27, 12, 0))  # noqa: DTZ001
+    with pytest.raises(ValidationError):
+        adapter.load(VALID_FIXTURE)

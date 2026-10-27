@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from grand_strategy_lab.adapters.base import AdapterResult
+from grand_strategy_lab.domain.models import GameMetadata
 from grand_strategy_lab.validation.parse import InputLimits, ParseResult, parse_state, read_bounded
 
 FIXTURE_RELATION_KINDS = frozenset({"alliance", "guarantee", "rivalry", "subject", "truce"})
@@ -42,8 +43,11 @@ class FixtureAdapter:
         result = parse_state(raw, limits=limits, relation_kinds=self.relation_kinds)
         if result.state is None:
             return result
-        metadata = result.state.metadata.model_copy(
-            update={
+        # Re-validate rather than model_copy: an injected clock returning a naive
+        # datetime must fail here, not produce a state that cannot be re-read.
+        metadata = GameMetadata.model_validate(
+            {
+                **dict(result.state.metadata),
                 "source_sha256": hashlib.sha256(raw).hexdigest(),
                 "parsed_at_utc": self._now(),
                 "adapter_name": self.name,
