@@ -88,3 +88,27 @@ def test_unknown_fields_rejected() -> None:
             {"kind": "alliance", "source": "A", "target": "B", "directed": False, "x": 1}
         )
     assert _error_types(info.value) == ["extra_forbidden"]
+
+
+def test_actor_listed_twice_on_one_side_rejected() -> None:
+    with pytest.raises(ValidationError) as info:
+        Conflict(
+            id="W1",
+            name="War",
+            attackers=("CCC", "CCC"),
+            defenders=("AAA",),
+            started=GameDate(1444, 1, 1),
+        )
+    assert _error_types(info.value) == ["GSL-CON-002"]
+
+
+@pytest.mark.parametrize("text", ["１４４４-01-01", "1444-٠١-01"])
+def test_non_ascii_digits_rejected_in_dates(text: str) -> None:
+    with pytest.raises(ValueError):
+        GameDate.parse(text)
+    with pytest.raises(ValidationError):
+        Relation.model_validate_json(
+            json.dumps(
+                {"kind": "truce", "source": "A", "target": "B", "directed": False, "since": text}
+            )
+        )

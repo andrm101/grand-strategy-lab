@@ -29,7 +29,12 @@ SourceKind = Literal["fixture", "save", "export"]
 
 
 class DomainModel(BaseModel):
-    """Base for all canonical models: immutable, strict, closed, finite."""
+    """Base for all canonical models: frozen, strict, closed, finite.
+
+    ``frozen`` blocks attribute assignment only: ``dict`` fields (actors,
+    territories, extensions) remain mutable containers and models are not
+    hashable. Treat states as read-only values.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True, allow_inf_nan=False)
 
@@ -110,6 +115,14 @@ class Conflict(DomainModel):
 
     @model_validator(mode="after")
     def _check_invariants(self) -> Conflict:
+        for side in (self.attackers, self.defenders):
+            repeated = sorted({actor for actor in side if side.count(actor) > 1})
+            if repeated:
+                raise PydanticCustomError(
+                    "GSL-CON-002",
+                    "actors listed more than once on one side: {actors}",
+                    {"actors": ", ".join(repeated)},
+                )
         overlap = sorted(set(self.attackers) & set(self.defenders))
         if overlap:
             raise PydanticCustomError(

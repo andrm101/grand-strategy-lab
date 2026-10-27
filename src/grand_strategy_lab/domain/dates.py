@@ -14,7 +14,7 @@ from typing import Any
 from pydantic import GetCoreSchemaHandler
 from pydantic_core import core_schema
 
-GAME_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
+GAME_DATE_PATTERN = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
 _GAME_DATE_RE = re.compile(GAME_DATE_PATTERN)
 
 MIN_YEAR = 1

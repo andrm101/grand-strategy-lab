@@ -38,3 +38,7 @@ def test_to_json_is_lf_terminated_and_sorted() -> None:
 )
 def test_schema_version_policy(version: str, supported: bool) -> None:
     assert is_supported_schema_version(version) is supported
+
+
+def test_non_ascii_digit_versions_unsupported() -> None:
+    assert not is_supported_schema_version("０.1.0")
