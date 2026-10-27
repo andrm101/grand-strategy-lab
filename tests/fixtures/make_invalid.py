@@ -11,6 +11,7 @@ from __future__ import annotations
 import copy
 import json
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -51,7 +52,27 @@ def _duplicate_reversed_alliance(doc: Doc) -> Doc:
     return doc
 
 
-CASES: dict[str, tuple[Callable[[Doc], Doc] | str, bool, Expected]] = {
+def _duplicate(path: list[str | int], index: int) -> Callable[[Doc], Doc]:
+    def mutate(doc: Doc) -> Doc:
+        node: Any = doc
+        for key in path:
+            node = node[key]
+        node.append(copy.deepcopy(node[index]))
+        return doc
+
+    return mutate
+
+
+@dataclass(frozen=True)
+class RawText:
+    """A mutation of the valid fixture's text (for inputs ``json.dumps`` cannot emit)."""
+
+    transform: Callable[[str], str]
+
+
+Mutation = Callable[[Doc], Doc] | RawText | str
+
+CASES: dict[str, tuple[Mutation, bool, Expected]] = {
     "missing_metadata_field": (
         _delete(["metadata", "game_id"]),
         False,
@@ -134,6 +155,37 @@ CASES: dict[str, tuple[Callable[[Doc], Doc] | str, bool, Expected]] = {
         [("GSL-VOC-001", "/relations/0/kind")],
     ),
     "not_json": ("{not json\n", False, [("GSL-IO-003", "")]),
+    "missing_metadata": (_delete(["metadata"]), False, [("GSL-STR-001", "/metadata")]),
+    "nan_in_extensions": (
+        _set(["extensions", "fixture", "weight"], float("nan")),
+        False,
+        [("GSL-NUM-001", "/extensions/fixture/weight")],
+    ),
+    "duplicate_json_key": (
+        RawText(lambda text: text.replace('"name": "Avaria"', '"name": "Avaria", "name": "X"', 1)),
+        False,
+        [("GSL-IO-005", "/actors/AAA/name")],
+    ),
+    "duplicate_actor_on_conflict_side": (
+        _set(["conflicts", 0, "attackers"], ["CCC", "CCC"]),
+        False,
+        [("GSL-CON-002", "/conflicts/0")],
+    ),
+    "future_extension_date": (
+        _set(["actors", "BBB", "extensions"], {"eu4": {"next_election": "1450-01-01"}}),
+        False,
+        [("GSL-DATE-002", "/actors/BBB/extensions/eu4/next_election")],
+    ),
+    "duplicate_conflict_id": (
+        _duplicate(["conflicts"], 0),
+        False,
+        [("GSL-DUP-002", "/conflicts/0/id"), ("GSL-DUP-002", "/conflicts/1/id")],
+    ),
+    "duplicate_resource_position": (
+        _duplicate(["resources"], 0),
+        False,
+        [("GSL-DUP-003", "/resources/0"), ("GSL-DUP-003", "/resources/3")],
+    ),
 }
 
 
@@ -144,6 +196,8 @@ def main() -> None:
     for name, (mutation, ok, expected) in CASES.items():
         if isinstance(mutation, str):
             text = mutation
+        elif isinstance(mutation, RawText):
+            text = mutation.transform(VALID.read_text(encoding="utf-8"))
         else:
             text = json.dumps(mutation(copy.deepcopy(valid)), indent=2, sort_keys=True) + "\n"
         (OUT / f"{name}.json").write_text(text, encoding="utf-8", newline="\n")

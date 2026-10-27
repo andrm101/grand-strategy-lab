@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "code": "GSL-NUM-001",
+      "path": "/extensions/fixture/weight"
+    }
+  ]
+}

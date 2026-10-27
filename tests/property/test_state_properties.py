@@ -1,19 +1,22 @@
 """Property tests: round-trip, referential integrity, and numeric invariants."""
 
 from datetime import UTC, datetime
+from typing import cast
 
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from grand_strategy_lab.domain import (
     Actor,
+    Conflict,
     GameDate,
     GameMetadata,
     GameState,
     Relation,
     ResourcePosition,
+    Territory,
     from_json,
     to_json,
 )
@@ -30,11 +33,49 @@ game_dates = st.builds(
 finite = st.floats(allow_nan=False, allow_infinity=False, width=64)
 
 
+namespaces = st.from_regex(r"[a-z0-9_]{1,8}", fullmatch=True)
+plain_text = st.text(alphabet="abcdefghij _", max_size=12)  # never date-shaped
+
+
+def json_values(past_dates: st.SearchStrategy[str]) -> st.SearchStrategy[JsonValue]:
+    """Finite JSON values whose only date-shaped strings are on or before the clock."""
+    leaves = st.none() | st.booleans() | st.integers() | finite | plain_text | past_dates
+    return cast(
+        st.SearchStrategy[JsonValue],
+        st.recursive(
+            leaves,
+            lambda inner: (
+                st.lists(inner, max_size=3) | st.dictionaries(plain_text, inner, max_size=3)
+            ),
+            max_leaves=8,
+        ),
+    )
+
+
 @st.composite
 def valid_states(draw: st.DrawFn) -> GameState:
-    clock = draw(st.builds(GameDate, st.integers(2, 9999), st.integers(1, 12), st.integers(1, 31)))
+    clock = draw(st.builds(GameDate, st.integers(2, 9998), st.integers(1, 12), st.integers(1, 31)))
+    past = st.builds(
+        GameDate, st.integers(1, clock.year - 1), st.integers(1, 12), st.integers(1, 31)
+    )
+    extensions: st.SearchStrategy[dict[str, JsonValue]] = st.dictionaries(
+        namespaces, json_values(past.map(str)), max_size=2
+    )
     ids = [f"A{i}" for i in range(draw(st.integers(2, 6)))]
-    actors = {i: Actor(id=i, name=f"Actor {i}", kind="country") for i in ids}
+    actors = {
+        i: Actor(id=i, name=f"Actor {i}", kind="country", extensions=draw(extensions)) for i in ids
+    }
+    owner = st.none() | st.sampled_from(ids)
+    territories = {
+        f"T{n}": Territory(
+            id=f"T{n}",
+            name=f"Land {n}",
+            owner=draw(owner),
+            controller=draw(owner),
+            extensions=draw(extensions),
+        )
+        for n in range(draw(st.integers(0, 4)))
+    }
     pairs = draw(
         st.lists(
             st.tuples(st.sampled_from(ids), st.sampled_from(ids)).filter(lambda p: p[0] != p[1]),
@@ -48,9 +89,22 @@ def valid_states(draw: st.DrawFn) -> GameState:
             source=a,
             target=b,
             directed=False,
-            since=draw(st.none() | st.just(GameDate(clock.year - 1, 1, 1))),
+            since=draw(st.none() | past),
+            extensions=draw(extensions),
         )
         for a, b in pairs
+    )
+    split = draw(st.integers(1, len(ids) - 1))
+    conflicts = tuple(
+        Conflict(
+            id=f"W{n}",
+            name=f"War {n}",
+            attackers=tuple(ids[:split]),
+            defenders=tuple(ids[split:]),
+            started=draw(past),
+            extensions=draw(extensions),
+        )
+        for n in range(draw(st.integers(0, 2)))
     )
     resources = tuple(
         ResourcePosition(actor_id=i, resource="treasury", amount=draw(finite), unit="gold")
@@ -68,7 +122,14 @@ def valid_states(draw: st.DrawFn) -> GameState:
         adapter_version="0.1.0",
     )
     return GameState(
-        metadata=metadata, clock=clock, actors=actors, relations=relations, resources=resources
+        metadata=metadata,
+        clock=clock,
+        actors=actors,
+        territories=territories,
+        relations=relations,
+        conflicts=conflicts,
+        resources=resources,
+        extensions=draw(extensions),
     )
 
 
@@ -127,3 +188,12 @@ def test_lower_bound_invariant(amount: float, bound: float) -> None:
     else:
         with pytest.raises(ValidationError):
             build()
+
+
+@given(valid_states(), st.integers(1, 5000))
+def test_future_extension_date_always_detected(state: GameState, days_ahead: int) -> None:
+    clock = state.clock
+    leak = GameDate(min(clock.year + 1 + days_ahead // 365, 9999), clock.month, clock.day)
+    leaked = state.model_copy(update={"extensions": {**state.extensions, "leak": str(leak)}})
+    issues = [(i.code, i.path) for i in validate_state(leaked).issues]
+    assert ("GSL-DATE-002", "/extensions/leak") in issues

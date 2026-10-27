@@ -1,0 +1,124 @@
+{
+  "actors": {
+    "AAA": {
+      "extensions": {},
+      "id": "AAA",
+      "kind": "country",
+      "name": "Avaria"
+    },
+    "BBB": {
+      "extensions": {},
+      "id": "BBB",
+      "kind": "country",
+      "name": "Belmont"
+    },
+    "CCC": {
+      "extensions": {},
+      "id": "CCC",
+      "kind": "country",
+      "name": "Corvane"
+    }
+  },
+  "clock": "1444-11-11",
+  "conflicts": [
+    {
+      "attackers": [
+        "CCC",
+        "CCC"
+      ],
+      "defenders": [
+        "BBB",
+        "AAA"
+      ],
+      "ended": null,
+      "extensions": {},
+      "id": "W001",
+      "name": "War of the Marches",
+      "started": "1444-06-01"
+    }
+  ],
+  "extensions": {
+    "fixture": {
+      "note": "Hand-authored synthetic state; fictional actors; no game assets."
+    }
+  },
+  "metadata": {
+    "adapter_name": "fixture",
+    "adapter_version": "0.1.0",
+    "dlc": [],
+    "game_id": "eu4_like",
+    "game_version": "unknown",
+    "mods": [],
+    "observed_at_game_time": "1444-11-11",
+    "parsed_at_utc": "1970-01-01T00:00:00Z",
+    "schema_version": "0.1.0",
+    "source_kind": "fixture",
+    "source_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "relations": [
+    {
+      "directed": false,
+      "extensions": {},
+      "kind": "alliance",
+      "since": "1440-03-01",
+      "source": "AAA",
+      "target": "BBB",
+      "until": null
+    },
+    {
+      "directed": true,
+      "extensions": {},
+      "kind": "rivalry",
+      "since": "1442-07-15",
+      "source": "CCC",
+      "target": "AAA",
+      "until": null
+    }
+  ],
+  "resources": [
+    {
+      "actor_id": "AAA",
+      "amount": 120.5,
+      "lower_bound": null,
+      "resource": "treasury",
+      "unit": "gold"
+    },
+    {
+      "actor_id": "AAA",
+      "amount": 15000.0,
+      "lower_bound": 0.0,
+      "resource": "manpower",
+      "unit": "men"
+    },
+    {
+      "actor_id": "CCC",
+      "amount": -35.0,
+      "lower_bound": null,
+      "resource": "treasury",
+      "unit": "gold"
+    }
+  ],
+  "territories": {
+    "T001": {
+      "controller": "AAA",
+      "extensions": {},
+      "id": "T001",
+      "name": "Avar Heights",
+      "owner": "AAA"
+    },
+    "T002": {
+      "controller": "CCC",
+      "extensions": {},
+      "id": "T002",
+      "name": "Belmont Marches",
+      "owner": "BBB"
+    },
+    "T003": {
+      "controller": "CCC",
+      "extensions": {},
+      "id": "T003",
+      "name": "Corvane Vale",
+      "owner": "CCC"
+    }
+  }
+}

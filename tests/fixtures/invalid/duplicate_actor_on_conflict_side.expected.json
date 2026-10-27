@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "code": "GSL-CON-002",
+      "path": "/conflicts/0"
+    }
+  ]
+}

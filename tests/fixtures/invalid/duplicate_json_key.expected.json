@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "code": "GSL-IO-005",
+      "path": "/actors/AAA/name"
+    }
+  ]
+}

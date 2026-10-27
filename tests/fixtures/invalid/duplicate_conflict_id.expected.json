@@ -1,0 +1,13 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "code": "GSL-DUP-002",
+      "path": "/conflicts/0/id"
+    },
+    {
+      "code": "GSL-DUP-002",
+      "path": "/conflicts/1/id"
+    }
+  ]
+}

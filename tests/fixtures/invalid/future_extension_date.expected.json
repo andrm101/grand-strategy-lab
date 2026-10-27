@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "code": "GSL-DATE-002",
+      "path": "/actors/BBB/extensions/eu4/next_election"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "ok": false,
+  "issues": [
+    {
+      "code": "GSL-STR-001",
+      "path": "/metadata"
+    }
+  ]
+}
