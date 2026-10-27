@@ -41,11 +41,20 @@ flowchart LR
 
 | Component | Package | Status |
 |---|---|---|
-| CLI | `grand_strategy_lab.cli` | Milestone 0 stub: `version`, `smoke`; `ingest`/`validate` exit 2 |
-| Canonical schema | `grand_strategy_lab.domain` | Empty — Milestone 1 |
-| Adapters | `grand_strategy_lab.adapters` | Empty — Milestone 1 (fixture), Milestone 2 (EU4) |
-| Validation | `grand_strategy_lab.validation` | Empty — Milestone 1 |
+| CLI | `grand_strategy_lab.cli` | `version`, `smoke`, `ingest`, `validate`, `schema export`; `--game eu4` exits 2 |
+| Canonical schema | `grand_strategy_lab.domain` | v0.1.0: `GameState`, `GameMetadata`, `Actor`, `Territory`, `Relation`, `Conflict`, `ResourcePosition`, `GameDate`; canonical JSON (ADR-0004, ADR-0005) |
+| Adapters | `grand_strategy_lab.adapters` | `GameAdapter` protocol; `FixtureAdapter`. EU4 in Milestone 2 |
+| Validation | `grand_strategy_lab.validation` | Bounded parsing (`InputLimits`), structural and cross-object checks, `ValidationReport` with stable codes ([catalogue](validation-codes.md)) |
 | Features, models, simulation, game theory, decision, agents, registry | respective packages | Empty placeholders |
+
+## Ingestion flow
+
+```text
+file ─read_bounded (size)─▶ bytes ─json (depth)─▶ schema-version gate
+     ─▶ Pydantic (structure, per-object invariants)
+     ─▶ validate_state (references, duplicates, clock, future dates, vocabulary)
+     ─▶ state only if no error ─▶ adapter re-stamps provenance
+```
 
 ## Dependency rule
 

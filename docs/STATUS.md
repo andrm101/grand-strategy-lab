@@ -4,22 +4,26 @@ Updated: 2026-10-27
 
 ## Current milestone
 
-**Milestone 0 — Repository foundation** (scaffolded; verification pending).
+**Milestone 1 — Canonical schema** (implemented; awaiting Step 7 review).
 
 ## Completed
 
-- Charter imported as `PROJECT_CHARTER.md` v0.1.1 (frontmatter fixed).
-- Standalone repo, package skeleton, CLI stub (`version`, `smoke`), tests, CI workflow, docs skeletons.
-- ADR-0001 (standalone repo), ADR-0002 (toolchain), ADR-0003 (CI matrix).
+- **Milestone 0**: repository foundation; CI green on Python 3.12/3.13 × Ubuntu/Windows
+  ([run 40542874745](https://github.com/andrm101/grand-strategy-lab/actions/runs/40542874745)).
+- **Milestone 1**: canonical schema v0.1.0, fixture adapter, bounded parsing, validation reports
+  with 24 stable codes, canonical JSON, committed JSON Schema, CLI `ingest` / `validate` /
+  `schema export`.
+- ADR-0001 to ADR-0005.
 
 ## Next
 
-1. Verify all quality gates locally and from a fresh clone.
-2. Push to GitHub and confirm the CI matrix is green (requires maintainer approval).
-3. Milestone 1: propose the canonical domain model before implementation.
+1. Step 7: Sentinel review (leakage, security, licensing, architecture boundaries).
+2. Step 8: report and update this file.
+3. Milestone 2: EU4 ingestion spike (parser ADR; local saves only).
 
 ## Open risks / unknowns
 
-- CI not yet run on GitHub (no remote).
-- Open decisions from the charter (parser strategy, pandas vs Polars, label definition, LLM provider, …) remain unresolved by design.
+- Calendar validity (e.g. 30 February) is not checked in the domain; EU4 calendar rules arrive with the adapter.
+- `FIXTURE_RELATION_KINDS` is a test vocabulary, not an EU4 mapping.
+- Charter open decisions (parser strategy, pandas vs Polars, label definition, LLM provider, …) remain unresolved by design.
 - The charter's Analyst role has no matching agent definition; not needed before Milestone 3.

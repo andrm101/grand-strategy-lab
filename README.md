@@ -8,7 +8,7 @@ country-survival and strategic-risk advisor.
 > claim to solve the game. See [PROJECT_CHARTER.md](PROJECT_CHARTER.md) for scope, architecture,
 > and milestones.
 
-**Status:** Milestone 0 (repository foundation). See [docs/STATUS.md](docs/STATUS.md).
+**Status:** Milestone 1 (canonical schema). See [docs/STATUS.md](docs/STATUS.md).
 
 ## Quick start
 
@@ -19,6 +19,17 @@ uv sync --all-extras --dev
 uv run gsl --help
 uv run gsl smoke          # loads the bundled synthetic fixture and prints its SHA-256
 ```
+
+## Canonical state
+
+```bash
+uv run gsl ingest --game fixture --input data/fixtures/minimal_state.json --output data/interim/state.json
+uv run gsl validate --state data/interim/state.json --format json
+uv run gsl schema export  # regenerates data/manifests/game_state.schema.json
+```
+
+Exit codes: `0` valid · `1` validation errors · `2` not implemented · `3` unreadable input.
+Issue codes are catalogued in [docs/validation-codes.md](docs/validation-codes.md).
 
 ## Quality gates
 
