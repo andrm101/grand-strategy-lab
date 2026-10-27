@@ -1,0 +1,11 @@
+# Default objective profile from PROJECT_CHARTER.md ("Initial objective profile").
+# Weights are software-design defaults, not empirical claims; override per run.
+objective:
+  name: survival_balanced
+  horizon_years: 10
+  utility_weights:
+    survival: 0.45
+    solvency: 0.20
+    territorial_security: 0.20
+    diplomatic_security: 0.15
+  risk_aversion: 0.35

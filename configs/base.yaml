@@ -1,0 +1,8 @@
+# Base configuration shared by all experiments. Paths are relative to the repository root.
+seed: 42
+paths:
+  fixtures: data/fixtures
+  raw: data/raw
+  interim: data/interim
+  processed: data/processed
+  artifacts: artifacts

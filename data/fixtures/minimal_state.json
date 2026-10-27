@@ -1,0 +1,23 @@
+{
+  "_comment": "Hand-authored synthetic fixture. Fictional actors; contains no game assets. Schema is validated from Milestone 1.",
+  "metadata": {
+    "game_id": "eu4-like",
+    "game_version": "unknown",
+    "schema_version": "0.0.0",
+    "source_kind": "fixture",
+    "observed_at_game_time": "1444-11-11",
+    "adapter_name": "fixture",
+    "adapter_version": "0.0.1",
+    "dlc": [],
+    "mods": []
+  },
+  "actors": [
+    {"id": "AAA", "name": "Avaria"},
+    {"id": "BBB", "name": "Belmont"},
+    {"id": "CCC", "name": "Corvane"}
+  ],
+  "relations": [
+    {"kind": "alliance", "source": "AAA", "target": "BBB"},
+    {"kind": "rivalry", "source": "CCC", "target": "AAA"}
+  ]
+}
