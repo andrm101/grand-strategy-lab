@@ -4,16 +4,19 @@ Updated: 2026-10-27
 
 ## Current milestone
 
-**Milestone 1 — Canonical schema** (implemented; awaiting Step 7 review).
+**Milestone 1 — Canonical schema** (implemented; Step 7 review fixes F1–F15 applied, re-review pending).
 
 ## Completed
 
 - **Milestone 0**: repository foundation; CI green on Python 3.12/3.13 × Ubuntu/Windows
   ([run 40542874745](https://github.com/andrm101/grand-strategy-lab/actions/runs/40542874745)).
 - **Milestone 1**: canonical schema v0.1.0, fixture adapter, bounded parsing, validation reports
-  with 24 stable codes, canonical JSON, committed JSON Schema, CLI `ingest` / `validate` /
+  with 26 stable codes, canonical JSON, committed JSON Schema, CLI `ingest` / `validate` /
   `schema export`.
-- ADR-0001 to ADR-0005.
+- Step 7 review fixes: raw-input scan (duplicate keys, NaN/Infinity, oversized integers), capped
+  reads, no input overwrite, exit 3 on write errors, terminal escaping, future dates inside
+  extensions, ASCII-only patterns, validated provenance re-stamp, `GSL-CON-002`.
+- ADR-0001 to ADR-0006.
 
 ## Next
 
