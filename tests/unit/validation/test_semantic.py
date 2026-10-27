@@ -139,3 +139,74 @@ def test_unsupported_schema_version_on_constructed_state() -> None:
         update={"metadata": state.metadata.model_copy(update={"schema_version": "9.0.0"})}
     )
     assert _codes(state) == [("GSL-SCH-001", "/metadata/schema_version")]
+
+
+def test_duplicate_conflict_ids_and_resource_positions() -> None:
+    war = Conflict(id="W", name="War", attackers=("A",), defenders=("B",), started=CLOCK)
+    gold = ResourcePosition(actor_id="A", resource="gold", amount=1.0, unit="g")
+    state = _state(conflicts=(war, war), resources=(gold, gold))
+    assert _codes(state) == [
+        ("GSL-DUP-002", "/conflicts/0/id"),
+        ("GSL-DUP-002", "/conflicts/1/id"),
+        ("GSL-DUP-003", "/resources/0"),
+        ("GSL-DUP-003", "/resources/1"),
+    ]
+
+
+def test_conflict_started_after_clock_is_future_information() -> None:
+    war = Conflict(
+        id="W", name="War", attackers=("A",), defenders=("B",), started=GameDate(1500, 1, 1)
+    )
+    assert _codes(_state(conflicts=(war,))) == [("GSL-DATE-002", "/conflicts/0/started")]
+
+
+def test_future_dates_inside_extensions_rejected_everywhere() -> None:
+    future, past = "1500-01-01", "1400-01-01"
+    state = _state(
+        actors={
+            "A": Actor(
+                id="A", name="Alpha", kind="country", extensions={"x": {"d": [past, future]}}
+            ),
+            "B": Actor(id="B", name="Beta", kind="country"),
+        },
+        territories={"T": Territory(id="T", name="Tee", extensions={"x": future})},
+        relations=(
+            Relation(
+                kind="alliance", source="A", target="B", directed=False, extensions={"x": future}
+            ),
+        ),
+        conflicts=(
+            Conflict(
+                id="W",
+                name="War",
+                attackers=("A",),
+                defenders=("B",),
+                started=CLOCK,
+                extensions={"x": {"until": future}},
+            ),
+        ),
+        extensions={"x": {"note": "not a date", "when": future, "odd": "1444-02-31x"}},
+    )
+    assert _codes(state) == [
+        ("GSL-DATE-002", "/actors/A/extensions/x/d/1"),
+        ("GSL-DATE-002", "/conflicts/0/extensions/x/until"),
+        ("GSL-DATE-002", "/extensions/x/when"),
+        ("GSL-DATE-002", "/relations/0/extensions/x"),
+        ("GSL-DATE-002", "/territories/T/extensions/x"),
+    ]
+
+
+def test_relation_until_exemption_applies_to_every_kind() -> None:
+    # ADR-0005: Relation.until may be future for any kind (scheduled expiry).
+    state = _state(
+        relations=(
+            Relation(
+                kind="alliance",
+                source="A",
+                target="B",
+                directed=False,
+                until=GameDate(1600, 1, 1),
+            ),
+        )
+    )
+    assert validate_state(state).ok

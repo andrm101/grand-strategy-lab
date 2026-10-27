@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections.abc import Iterator
 
-from grand_strategy_lab.domain.dates import GameDate
-from grand_strategy_lab.domain.models import GameState, Relation
+from pydantic import JsonValue
+
+from grand_strategy_lab.domain.dates import GAME_DATE_PATTERN, GameDate
+from grand_strategy_lab.domain.models import Extensions, GameState, Relation
 from grand_strategy_lab.domain.serialization import is_supported_schema_version
 from grand_strategy_lab.validation.report import ValidationIssue, ValidationReport, json_pointer
+
+_GAME_DATE_RE = re.compile(GAME_DATE_PATTERN)
 
 
 def _relation_key(relation: Relation) -> tuple[str, str, str, bool]:
@@ -30,9 +35,51 @@ def _future_dates(
             )
 
 
+def _extension_dates(
+    state: GameState, value: JsonValue, path: tuple[str | int, ...]
+) -> Iterator[ValidationIssue]:
+    """Flag canonical ``YYYY-MM-DD`` strings in extensions that lie after the clock."""
+    if isinstance(value, str):
+        if _GAME_DATE_RE.fullmatch(value):
+            try:
+                date = GameDate.parse(value)
+            except ValueError:
+                return
+            if date > state.clock:
+                yield ValidationIssue.from_code(
+                    "GSL-DATE-002",
+                    json_pointer(path),
+                    f"extension date {date} is after clock {state.clock}",
+                )
+    elif isinstance(value, dict):
+        for key, child in value.items():
+            yield from _extension_dates(state, child, (*path, key))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            yield from _extension_dates(state, child, (*path, index))
+
+
+def _all_extension_dates(state: GameState) -> Iterator[ValidationIssue]:
+    owners: list[tuple[tuple[str | int, ...], Extensions]] = [(("extensions",), state.extensions)]
+    owners += [(("actors", key, "extensions"), a.extensions) for key, a in state.actors.items()]
+    owners += [
+        (("territories", key, "extensions"), t.extensions) for key, t in state.territories.items()
+    ]
+    owners += [
+        (("relations", i, "extensions"), r.extensions) for i, r in enumerate(state.relations)
+    ]
+    owners += [
+        (("conflicts", i, "extensions"), c.extensions) for i, c in enumerate(state.conflicts)
+    ]
+    for base, extensions in owners:
+        for namespace, value in extensions.items():
+            yield from _extension_dates(state, value, (*base, namespace))
+
+
 def _iter_issues(
     state: GameState, relation_kinds: frozenset[str] | None
 ) -> Iterator[ValidationIssue]:
+    yield from _all_extension_dates(state)
     meta = state.metadata
     if not is_supported_schema_version(meta.schema_version):
         yield ValidationIssue.from_code(
@@ -136,6 +183,8 @@ def validate_state(
     ``relation_kinds`` is the adapter's declared vocabulary; ``None`` skips the
     vocabulary check. ``Relation.until`` is not checked against the clock because
     a snapshot may record scheduled expiries (e.g. truces); every other date
-    after the clock is future information and is rejected (GSL-DATE-002).
+    after the clock is future information and is rejected (GSL-DATE-002). That
+    includes canonical ``YYYY-MM-DD`` strings anywhere inside ``extensions``;
+    adapters must model scheduled future dates as typed fields, not extensions.
     """
     return ValidationReport.from_issues(_iter_issues(state, relation_kinds))
