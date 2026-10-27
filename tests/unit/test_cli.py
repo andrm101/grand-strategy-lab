@@ -114,3 +114,37 @@ def test_smoke_malformed_json_is_invalid_input(tmp_path: Path) -> None:
     bad.write_text("{not json", encoding="utf-8")
     result = runner.invoke(app, ["smoke", "--fixture", str(bad)])
     assert result.exit_code == EXIT_INVALID_INPUT
+
+
+def test_ingest_refuses_to_overwrite_input(tmp_path: Path) -> None:
+    source = tmp_path / "raw.json"
+    source.write_bytes(VALID_FIXTURE.read_bytes())
+    before = source.read_bytes()
+    args = ["ingest", "--game", "fixture", "--input", str(source), "--output", str(source)]
+    result = runner.invoke(app, args)
+    assert result.exit_code == EXIT_INVALID_INPUT
+    assert source.read_bytes() == before
+
+
+def test_unwritable_output_is_invalid_input(tmp_path: Path) -> None:
+    directory = tmp_path / "out"
+    directory.mkdir()
+    args = ["ingest", "--game", "fixture", "--input", str(VALID_FIXTURE)]
+    assert runner.invoke(app, [*args, "--output", str(directory)]).exit_code == EXIT_INVALID_INPUT
+    schema_args = ["schema", "export", "--output", str(directory)]
+    assert runner.invoke(app, schema_args).exit_code == EXIT_INVALID_INPUT
+
+
+def test_missing_state_reports_io_001(tmp_path: Path) -> None:
+    args = ["validate", "--state", str(tmp_path / "nope.json"), "--format", "json"]
+    result = runner.invoke(app, args)
+    assert result.exit_code == EXIT_INVALID_INPUT
+    assert [i["code"] for i in json.loads(result.output)["issues"]] == ["GSL-IO-001"]
+
+
+def test_text_report_escapes_control_characters(tmp_path: Path, valid_doc: dict[str, Any]) -> None:
+    valid_doc["actors"]["AAA"]["\x1b[31mevil"] = 1
+    result = runner.invoke(app, ["validate", "--state", str(_write(tmp_path, valid_doc))])
+    assert result.exit_code == EXIT_VALIDATION_FAILED
+    assert "\x1b" not in result.output
+    assert r"\x1b[31mevil" in result.output

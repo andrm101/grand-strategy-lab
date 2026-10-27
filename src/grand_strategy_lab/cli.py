@@ -1,7 +1,8 @@
 """Command-line entry point for Grand Strategy Lab (``gsl``).
 
 Exit codes: 0 success; 1 validation errors; 2 not implemented; 3 unreadable or
-invalid input (missing file, size/depth limit, malformed JSON, unknown game).
+invalid input or unusable output (missing file, size/depth limit, malformed JSON,
+unknown game, output equal to input, filesystem write error).
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import hashlib
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, NoReturn
 
 import typer
 
@@ -57,6 +58,27 @@ def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _printable(text: str) -> str:
+    """Escape non-printable characters so untrusted text cannot drive the terminal."""
+    return "".join(
+        char if char.isprintable() else char.encode("unicode_escape").decode("ascii")
+        for char in text
+    )
+
+
+def _fail_output(message: str) -> NoReturn:
+    typer.echo(f"error: {_printable(message)}", err=True)
+    raise typer.Exit(code=EXIT_INVALID_INPUT)
+
+
+def _write_text(path: Path, text: str) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8", newline="\n")
+    except OSError as exc:
+        _fail_output(f"cannot write {path.as_posix()}: {exc.strerror or exc}")
+
+
 def _render(report: ValidationReport, fmt: OutputFormat) -> None:
     if fmt is OutputFormat.json:
         typer.echo(report.model_dump_json(indent=2))
@@ -64,8 +86,9 @@ def _render(report: ValidationReport, fmt: OutputFormat) -> None:
     status = "ok" if report.ok else "invalid"
     typer.echo(f"{status}: {len(report.issues)} issue(s)")
     for issue in report.issues:
-        location = issue.path or "/"
-        typer.echo(f"  {issue.severity.upper()} {issue.code} {location}: {issue.message}")
+        location = _printable(issue.path or "/")
+        message = _printable(issue.message)
+        typer.echo(f"  {issue.severity.upper()} {issue.code} {location}: {message}")
         typer.echo(f"    fix: {issue.remediation}")
 
 
@@ -102,11 +125,12 @@ def ingest(
 ) -> None:
     """Ingest a source file into a validated canonical state."""
     _check_game(game)
+    if output.exists() and input_path.exists() and output.samefile(input_path):
+        _fail_output("--output must differ from --input; raw inputs are never overwritten.")
     result = ADAPTERS[game]().load(input_path)
     _render(result.report, fmt)
     if result.state is not None:
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(to_json(result.state), encoding="utf-8", newline="\n")
+        _write_text(output, to_json(result.state))
     raise typer.Exit(code=_exit_code(result.report))
 
 
@@ -142,8 +166,7 @@ def schema_export(
     ] = DEFAULT_SCHEMA_PATH,
 ) -> None:
     """Write the canonical GameState JSON Schema."""
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(to_canonical_json(game_state_json_schema()), encoding="utf-8", newline="\n")
+    _write_text(output, to_canonical_json(game_state_json_schema()))
     typer.echo(f"wrote {output.as_posix()}")
 
 
